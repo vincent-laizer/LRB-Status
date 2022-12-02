@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LRB Status</string>
+    <string name="status_image_description">Image to show network status</string>
+    <string name="settings_image_description">description for button icon settings</string>
+</resources>
