@@ -122,7 +122,7 @@ def networkStatus():
     current_time = datetime.datetime.now()
     check_time = current_time - datetime.timedelta(hours=no_hours)
 
-    msgs = ["Internet Unavailabel", "Not Sure", "Internet Availabe"]
+    msgs = ["Internet Unavailable", "Not Sure", "Internet Available"]
 
     results = fetch_requests_time(f"{check_time:%Y-%m-%d %H:%M:%S}")
     no_requests = len(results["requests"])
