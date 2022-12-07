@@ -110,7 +110,7 @@ def fetch_requests_time(time:str):
         return {"requests": orders}
 
 def fetch_unique_by_hour(time:str):
-    with sql.connect('database-07-dec.db') as conn:
+    with sql.connect('database.db') as conn:
         cursor = conn.cursor()
         cursor.execute(f"SELECT ip, COUNT(ip) AS amount FROM request WHERE date > '{time}' GROUP BY ip")
         data = cursor.fetchall()
@@ -128,10 +128,36 @@ def storeRequest(ip:str):
     """ store the request in db """
     store_request(ip, datetime.datetime.now())
 
+def get_avg_people(hours:int):
+    """
+    returns number of unique ip addresses(people) accessing the system in the last <hour> hours
+    """
+    avg_people = 1
+    try:
+        current_time = datetime.datetime.now()
+        check_time = current_time - datetime.timedelta(hours=hours)
+        requests = fetch_unique_by_hour(time=f"{check_time:%Y-%m-%d %H:%M:%S}")
+        avg_people = len(requests["requests"])
+
+        if avg_people < 1:
+            avg_people = 1
+    except:
+        # ignore any exceptions for now
+        pass
+
+    return avg_people
+
+def get_no_hours():
+    return 2
+
 def networkStatus():
     """ fetch the details and perform neccessary computations """
-    no_hours = 1 # number of hours ago to count and include the requests issued
-    avg_people = 1 # average number of people sending requests per hour
+    # number of hours ago to count and include the requests issued
+    # no_hours = 2
+    no_hours = get_no_hours()
+    # average number of people sending requests per hour
+    # avg_people = 1
+    avg_people = get_avg_people(hours=no_hours)
     current_time = datetime.datetime.now()
     check_time = current_time - datetime.timedelta(hours=no_hours)
 
@@ -185,6 +211,10 @@ def home():
 def consume():
     """ use the data collected, accessed by mobile app """
     return jsonify(networkStatus())
+
+@app.route("/average/<int:hours>")
+def average(hours):
+    return jsonify({"average_people": get_avg_people(hours=hours), "hours": get_no_hours()})
 
 @app.route("/hour/<int:hour>")
 def hour(hour:int):
