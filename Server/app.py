@@ -109,6 +109,19 @@ def fetch_requests_time(time:str):
                 })
         return {"requests": orders}
 
+def fetch_unique_by_hour(time:str):
+    with sql.connect('database-07-dec.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT ip, COUNT(ip) AS amount FROM request WHERE date > '{time}' GROUP BY ip")
+        data = cursor.fetchall()
+        orders = []
+        for d in data:
+            orders.append({
+                "ip": d[0],
+                "count": d[1]
+                })
+        return {"requests": orders}
+
 # ---- end of db.py methods ----
 
 def storeRequest(ip:str):
@@ -172,6 +185,20 @@ def home():
 def consume():
     """ use the data collected, accessed by mobile app """
     return jsonify(networkStatus())
+
+@app.route("/hour/<int:hour>")
+def hour(hour:int):
+    """ get all the requests made from providers in the past <hour> hours """
+    current_time = datetime.datetime.now()
+    last_hour = current_time - datetime.timedelta(hours=hour)
+    return jsonify(fetch_requests_time(time=last_hour))
+
+@app.route("/unique/<int:hour>")
+def unique(hour):
+    """ get all unique ip addresses in last <hour> hours with their request count """
+    current_time = datetime.datetime.now()
+    check_time = current_time - datetime.timedelta(hours=hour)
+    return jsonify(fetch_unique_by_hour(time=f"{check_time:%Y-%m-%d %H:%M:%S}"))
 
 @app.route("/provide/<string:ip>")
 def provide(ip):
