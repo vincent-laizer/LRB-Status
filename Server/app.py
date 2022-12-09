@@ -171,7 +171,7 @@ def networkStatus():
         waiting_time = 3 #in minutes, that a single provider waits before sending another request
 
         percent = waiting_time*no_requests*10/(6*no_hours*avg_people)
-        if percent > 50.0:
+        if percent > 39.0:
             index = 2
         elif percent > 30.0:
             index = 1
