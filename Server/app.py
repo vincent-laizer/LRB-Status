@@ -37,6 +37,25 @@ def store_request(ip:str, date:str):
         con.close()
         return msg
 
+def store_consumption(date:str):
+    """ save consumption request to db"""
+    msg = False
+    try:
+        with sql.connect("database.db") as con:
+            cur = con.cursor()
+            # print(str(date))
+            # date = str(date)
+            cur.execute("INSERT INTO consumption (date) VALUES (?)",(date))
+        con.commit()
+        msg = True
+    except Exception as e:
+        con.rollback()
+        print(e)
+        msg = False
+    finally:
+        con.close()
+        return msg
+
 def store_feedback(feedback:str, date:str):
     """ save feedback to db """
     try:
@@ -51,6 +70,20 @@ def store_feedback(feedback:str, date:str):
     finally:
         con.close()
         return msg
+
+def fetch_consumption():
+    """ return all the consumption requests made """
+    with sql.connect('database.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM consumption")
+        data = cursor.fetchall()
+        orders = []
+        for d in data:
+            orders.append({
+                "id": d[0],
+                "date": d[1]
+                })
+        return {"consumptions": orders}
 
 def fetch_feedback():
     """ return all the feedback from the db """
@@ -128,6 +161,10 @@ def storeRequest(ip:str):
     """ store the request in db """
     store_request(ip, datetime.datetime.now())
 
+def count_consumption():
+    """ counts the number of requests fom the mobile app (client)"""
+    store_consumption(date=datetime.datetime.now())
+
 def get_avg_people(hours:int):
     """
     returns number of unique ip addresses(people) accessing the system in the last <hour> hours
@@ -148,7 +185,7 @@ def get_avg_people(hours:int):
     return avg_people
 
 def get_no_hours():
-    return 2
+    return 1
 
 def networkStatus():
     """ fetch the details and perform neccessary computations """
@@ -182,6 +219,9 @@ def networkStatus():
         last_checked = datetime.datetime.strptime(last_checked, '%Y-%m-%d %H:%M:%S.%f')
         # account for the 3 hour time difference between pythonanywhere servers and local time
         last_checked = last_checked + datetime.timedelta(hours=3)
+        if percent> 100.0:
+            percent = 100.0
+            
         status = {
             "last_checked": f"{last_checked:%d/%m/%Y %H:%M:%S}",
             "confidence": f"{percent:.01f}",
@@ -210,7 +250,13 @@ def home():
 @app.route("/consume")
 def consume():
     """ use the data collected, accessed by mobile app """
+    # count the number of requests from clients
+    count_consumption()
     return jsonify(networkStatus())
+
+@app.route("/consumption")
+def consumption():
+    return jsonify(fetch_consumption())
 
 @app.route("/average/<int:hours>")
 def average(hours):
@@ -260,7 +306,21 @@ def config():
     print("Configuring ..")
     init_db()
     print("DB Configured")
-    return "sucess"
+    return "success"
+
+@app.route("/temp")
+def temp():
+    """ for temporary database operations """
+    conn = sql.connect('database.db')
+    print("Opened database successfully")
+
+    # create consumption tabel
+    conn.execute('CREATE TABLE consumption(id INTEGER PRIMARY KEY, date DATE)')
+    # conn.execute('DROP TABLE consumption')
+    print("Consumption Table created successfully")
+    conn.close()
+
+    return "success"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
